@@ -1,280 +1,276 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://hfos.local/schema/v2.0.0",
+  "$id": "https://github.com/TheRealT0B/hfos/schema/schema.json",
   "title": "HouseholdFinancialOS",
-  "description": "Blueprint schema for the Household Financial Operating System (HFOS). Contains no personal data. Defines structural entities only.",
-  "type": "object",
+  "version": "V1.4",
+  "description": "Canonical HFOS entity schema. All engines, UI, and automation layers must conform to this schema. No field may be renamed, removed, or repurposed without a version increment.",
 
-  "required": [
-    "household",
-    "users",
-    "accounts",
-    "creditCards",
-    "transactions",
-    "rewards",
-    "goals",
-    "settings"
-  ],
+  "entities": {
+    "user": {
+      "required_fields": ["id", "name", "role", "chase524", "spendPatterns"],
+      "properties": {
+        "id":            { "type": "string", "format": "uuid" },
+        "name":          { "type": "string" },
+        "role":          { "type": "string", "enum": ["primary", "spouse"] },
+        "avatarColor":   { "type": "string" },
+        "chase524": {
+          "required": ["openedLast24Months", "slotsRemaining", "isAtLimit"],
+          "properties": {
+            "openedLast24Months": { "type": "integer", "minimum": 0, "maximum": 10 },
+            "slotsRemaining":     { "type": "integer", "minimum": 0 },
+            "isAtLimit":          { "type": "boolean" }
+          }
+        },
+        "spendPatterns": {
+          "type": "object",
+          "description": "Category → monthly USD amount mapping.",
+          "properties": {
+            "dining":           { "type": "number" },
+            "groceries":        { "type": "number" },
+            "groceriesOnline":  { "type": "number" },
+            "gas":              { "type": "number" },
+            "amazon":           { "type": "number" },
+            "wholeFoods":       { "type": "number" },
+            "streaming":        { "type": "number" },
+            "travel":           { "type": "number" },
+            "flightsPortal":    { "type": "number" },
+            "hotelsHyatt":      { "type": "number" },
+            "hotelsIHG":        { "type": "number" },
+            "hotelsMarriott":   { "type": "number" },
+            "hotelsOther":      { "type": "number" },
+            "transit":          { "type": "number" },
+            "drugstore":        { "type": "number" },
+            "fitness":          { "type": "number" },
+            "utilities":        { "type": "number" },
+            "insurance":        { "type": "number" },
+            "shopping":         { "type": "number" },
+            "homeImprovement":  { "type": "number" },
+            "other":            { "type": "number" }
+          }
+        }
+      }
+    },
 
-  "properties": {
-    "household":     { "$ref": "#/$defs/Household" },
-    "users":         { "type": "array", "items": { "$ref": "#/$defs/User" } },
-    "accounts":      { "type": "array", "items": { "$ref": "#/$defs/Account" } },
-    "creditCards":   { "type": "array", "items": { "$ref": "#/$defs/CreditCard" } },
-    "transactions":  { "type": "array", "items": { "$ref": "#/$defs/Transaction" } },
-    "rewards":       { "type": "array", "items": { "$ref": "#/$defs/Rewards" } },
-    "goals":         { "type": "array", "items": { "$ref": "#/$defs/Goal" } },
-    "settings":      { "$ref": "#/$defs/Settings" }
+    "household": {
+      "required_fields": ["id", "name", "users", "schemaVersion"],
+      "properties": {
+        "id":            { "type": "string", "format": "uuid" },
+        "name":          { "type": "string" },
+        "users":         { "type": "array", "items": { "type": "string" }, "minItems": 1, "maxItems": 2 },
+        "sharedAccounts":{ "type": "array", "items": { "type": "string" } },
+        "schemaVersion": { "type": "string" },
+        "createdAt":     { "type": "string", "format": "date-time" }
+      }
+    },
+
+    "credit_card": {
+      "required_fields": ["id", "name", "issuer", "annualFee", "status", "statement_close_date", "due_date", "apr", "autopay_enabled"],
+      "properties": {
+        "id":                   { "type": "string" },
+        "ownerId":              { "type": "string" },
+        "name":                 { "type": "string" },
+        "issuer":               { "type": "string", "enum": ["chase", "amex", "wells_fargo", "citi", "capital_one", "barclays", "synchrony", "bank_of_america", "us_bank", "discover", "other"] },
+        "network":              { "type": "string", "enum": ["visa", "mastercard", "amex", "discover"] },
+        "isBusinessCard":       { "type": "boolean" },
+        "isCobranded":          { "type": "boolean" },
+        "cobrandPartner":       { "type": ["string", "null"] },
+        "annualFee":            { "type": "number", "minimum": 0 },
+        "annualFeeDueDate":     { "type": ["string", "null"] },
+        "statement_close_date": { "type": ["string", "null"], "description": "Day of month (1-31) the statement closes." },
+        "due_date":             { "type": ["string", "null"], "description": "Day of month (1-31) the payment is due." },
+        "apr":                  { "type": ["number", "null"], "description": "Annual percentage rate." },
+        "autopay_enabled":      { "type": "boolean", "default": false },
+        "foreignTransactionFee":{ "type": "number", "minimum": 0 },
+        "status":               { "type": "string", "enum": ["active", "cancel_soon", "keep_for_history", "product_change_pending", "closed"] },
+        "openedDate":           { "type": ["string", "null"] },
+        "rewardsCurrency":      { "type": "string" },
+        "isUrEarning":          { "type": "boolean" },
+        "urPoolTargetCardId":   { "type": ["string", "null"] },
+        "countsToward524":      { "type": "boolean" },
+        "accentColor":          { "type": "string" },
+        "role":                 { "type": "string", "description": "Human-readable role description." },
+        "categoryMultipliers":  { "type": "array", "items": { "$ref": "#/$defs/CategoryMultiplier" } },
+        "quarterlyBonuses":     { "type": "array", "items": { "$ref": "#/$defs/QuarterlyBonus" } },
+        "credits":              { "type": "array", "items": { "$ref": "#/$defs/CardCredit" } },
+        "freeNightCerts":       { "type": "array", "items": { "$ref": "#/$defs/FreeNightCert" } },
+        "retentionOffers":      { "type": "array" },
+        "roiTracking":          { "$ref": "#/$defs/ROITracking" },
+        "notes":                { "type": "string" }
+      }
+    },
+
+    "account": {
+      "required_fields": ["id", "accountName", "type", "institution", "balance", "asOfDate"],
+      "properties": {
+        "id":          { "type": "string" },
+        "ownerId":     { "type": "string" },
+        "accountName": { "type": "string" },
+        "type":        { "type": "string", "enum": ["checking", "savings", "money_market", "brokerage", "roth_ira", "traditional_ira", "401k", "403b", "hsa", "esop", "529", "crypto", "liability_mortgage", "liability_auto", "liability_student", "liability_cc", "liability_other"] },
+        "institution": { "type": "string" },
+        "balance":     { "type": "number" },
+        "asOfDate":    { "type": "string", "format": "date" },
+        "isLiability": { "type": "boolean", "default": false },
+        "interestRate":{ "type": ["number", "null"] },
+        "minPayment":  { "type": ["number", "null"] },
+        "taxTreatment":{ "type": "string", "enum": ["pre_tax", "roth", "taxable", "hsa_triple", "tax_exempt"] },
+        "notes":       { "type": "string" }
+      }
+    },
+
+    "transaction": {
+      "required_fields": ["id", "date", "merchant", "category", "amount"],
+      "properties": {
+        "id":        { "type": "string" },
+        "userId":    { "type": "string" },
+        "date":      { "type": "string", "format": "date" },
+        "merchant":  { "type": "string" },
+        "category":  { "type": "string" },
+        "cardUsed":  { "type": ["string", "null"] },
+        "amount":    { "type": "number" },
+        "notes":     { "type": "string" },
+        "optimizedCardRecommendation": {
+          "type": ["object", "null"],
+          "properties": {
+            "recommendedCardId":   { "type": "string" },
+            "recommendedCardName": { "type": "string" },
+            "expectedMultiplier":  { "type": "number" },
+            "missedValueUsd":      { "type": "number" },
+            "reason":              { "type": "string" }
+          }
+        }
+      }
+    },
+
+    "task": {
+      "required_fields": ["id", "name", "type", "due_date", "priority", "status", "linked_entity"],
+      "properties": {
+        "id":            { "type": "string" },
+        "name":          { "type": "string" },
+        "type":          { "type": "string", "enum": ["payment", "review", "audit", "suggestion"] },
+        "due_date":      { "type": "string", "format": "date" },
+        "priority":      { "type": "string", "enum": ["high", "medium", "low"] },
+        "status":        { "type": "string", "enum": ["pending", "complete", "overdue", "dismissed"] },
+        "linked_entity": { "type": "string", "description": "Entity type the task references: credit_card | account | household" },
+        "linked_id":     { "type": "string", "description": "ID of the linked entity." },
+        "rule_source":   { "type": "string", "description": "Which task-generation rule created this task." },
+        "is_recurring":  { "type": "boolean" },
+        "completed_at":  { "type": ["string", "null"] }
+      }
+    },
+
+    "rewards": {
+      "required_fields": ["id", "program", "balance", "pointValuation"],
+      "properties": {
+        "id":               { "type": "string" },
+        "holderUserId":     { "type": "string" },
+        "program":          { "type": "string" },
+        "displayName":      { "type": "string" },
+        "programType":      { "type": "string", "enum": ["transferable_points", "airline_miles", "hotel_points", "cash_back", "store_rewards"] },
+        "isHouseholdPooled":{ "type": "boolean" },
+        "balance":          { "type": "number" },
+        "pendingBalance":   { "type": "number" },
+        "pointValuation": {
+          "required": ["cpp", "source"],
+          "properties": {
+            "cpp":             { "type": "number" },
+            "cppCash":         { "type": "number" },
+            "cppPortal":       { "type": ["number", "null"] },
+            "cppBestTransfer": { "type": ["number", "null"] },
+            "source":          { "type": "string" }
+          }
+        },
+        "transferPartners":  { "type": "array" },
+        "redemptionHistory": { "type": "array" }
+      }
+    },
+
+    "goal": {
+      "required_fields": ["id", "type", "title", "status"],
+      "properties": {
+        "id":          { "type": "string" },
+        "type":        { "type": "string", "enum": ["fire", "travel", "savings", "debt_payoff", "purchase", "milestone"] },
+        "title":       { "type": "string" },
+        "description": { "type": "string" },
+        "status":      { "type": "string", "enum": ["active", "achieved", "paused", "cancelled"] },
+        "priority":    { "type": "integer" },
+        "checked":     { "type": "boolean" },
+        "value":       { "type": ["number", "null"] },
+        "travelDetails":{ "type": ["object", "null"] },
+        "fireDetails": { "type": ["object", "null"] }
+      }
+    },
+
+    "settings": {
+      "required_fields": [],
+      "properties": {
+        "optimizationRules":   { "type": "object" },
+        "valuationOverrides":  { "type": "array" },
+        "householdPreferences":{ "type": "object" },
+        "fireAssumptions":     { "type": "object" },
+        "alertPreferences":    { "type": "array" }
+      }
+    }
   },
 
   "$defs": {
-
-    "User": {
-      "title": "User",
-      "type": "object",
-      "required": ["id", "name", "role"],
+    "CategoryMultiplier": {
+      "required": ["category", "multiplier"],
       "properties": {
-        "id":   { "type": "string", "format": "uuid" },
-        "name": { "type": "string" },
-        "role": { "type": "string", "enum": ["primary", "spouse"] },
-
-        "income": {
-          "type": "object",
-          "properties": {
-            "grossAnnual": { "type": "number" },
-            "netMonthly":  { "type": "number" },
-            "sources": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": ["label", "grossAnnual"],
-                "properties": {
-                  "label":        { "type": "string" },
-                  "grossAnnual":  { "type": "number" },
-                  "isVariable":   { "type": "boolean" },
-                  "varianceHigh": { "type": ["number", "null"] },
-                  "varianceLow":  { "type": ["number", "null"] }
-                }
-              }
-            }
-          }
-        },
-
-        "savingsRate": {
-          "type": "object",
-          "properties": {
-            "targetPct":  { "type": "number" },
-            "actualPct":  { "type": ["number", "null"] },
-            "includesEmployerMatch": { "type": "boolean" }
-          }
-        },
-
-        "riskTolerance": {
-          "type": "string",
-          "enum": ["conservative", "moderate", "aggressive", "very_aggressive"]
-        },
-
-        "travelPreferences": { "$ref": "#/$defs/TravelPreferences" },
-
-        "cardOwnership": {
-          "type": "array",
-          "items": { "type": "string", "format": "uuid" }
-        },
-
-        "authorizedUserOn": {
-          "type": "array",
-          "items": { "type": "string", "format": "uuid" }
-        },
-
-        "spendPatterns": {
-          "type": "object",
-          "additionalProperties": { "type": "number" }
-        },
-
-        "chase524": {
-          "type": "object",
-          "properties": {
-            "openedLast24Months": { "type": "integer" },
-            "slotsRemaining":     { "type": "integer" },
-            "isAtLimit":          { "type": "boolean" },
-            "cardsInWindow": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": ["cardName", "openedDate", "countsToward524"],
-                "properties": {
-                  "cardName":        { "type": "string" },
-                  "issuer":          { "type": "string" },
-                  "openedDate":      { "type": "string", "format": "date" },
-                  "countsToward524": { "type": "boolean" },
-                  "agesOffDate":     { "type": "string", "format": "date" }
-                }
-              }
-            }
-          }
-        }
+        "category":  { "type": "string" },
+        "multiplier":{ "type": "number" },
+        "label":     { "type": "string" }
       }
     },
-
-    "Household": {
-      "title": "Household",
-      "type": "object",
-      "required": ["id", "name", "users"],
+    "QuarterlyBonus": {
+      "required": ["quarter", "year", "category", "multiplier"],
       "properties": {
-        "id":    { "type": "string", "format": "uuid" },
-        "name":  { "type": "string" },
-        "users": {
-          "type": "array",
-          "items": { "type": "string", "format": "uuid" }
-        },
-        "sharedAccounts": {
-          "type": "array",
-          "items": { "type": "string", "format": "uuid" }
-        },
-        "householdRules": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/HouseholdRule" }
-        },
-        "travelGoals": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/TravelGoal" }
-        },
-        "fireGoals": { "$ref": "#/$defs/FIREGoal" },
-        "schemaVersion": { "type": "string" }
+        "quarter":             { "type": "string" },
+        "year":                { "type": "integer" },
+        "category":            { "type": "string" },
+        "multiplier":          { "type": "number" },
+        "cap":                 { "type": "number" },
+        "activationDeadline":  { "type": "string" },
+        "validUntil":          { "type": "string" },
+        "isActivated":         { "type": "boolean" }
       }
     },
-
-    "Account": {
-      "title": "Account",
-      "type": "object",
-      "required": ["id", "ownerId", "type", "institution", "balance", "asOfDate"],
+    "CardCredit": {
+      "required": ["name", "amount", "period"],
       "properties": {
-        "id":      { "type": "string", "format": "uuid" },
-        "ownerId": { "type": "string", "format": "uuid" },
-        "isJoint": { "type": "boolean" },
-
-        "institution": { "type": "string" },
-        "accountName": { "type": "string" },
-
-        "type": {
-          "type": "string",
-          "enum": [
-            "checking", "savings", "money_market", "cd",
-            "brokerage", "roth_ira", "traditional_ira", "sep_ira",
-            "401k", "403b", "solo_401k",
-            "hsa", "fsa", "dependent_care_fsa",
-            "esop", "pension", "deferred_compensation",
-            "529", "custodial", "crypto", "other"
-          ]
-        },
-
-        "balance":  { "type": "number" },
-        "asOfDate": { "type": "string", "format": "date" },
-
-        "contributionRate": {
-          "type": ["object", "null"],
-          "properties": {
-            "amount": { "type": "number" },
-            "frequency": {
-              "type": "string",
-              "enum": ["per_paycheck", "monthly", "quarterly", "annually", "manual"]
-            },
-            "isPercentOfIncome": { "type": "boolean" },
-            "percentOfIncome":   { "type": ["number", "null"] },
-            "employerMatchPct":  { "type": ["number", "null"] },
-            "employerMatchCapPct": { "type": ["number", "null"] },
-            "vestingSchedule": {
-              "type": "string",
-              "enum": ["immediate", "cliff_1yr", "cliff_2yr", "graded_3yr", "graded_6yr", "none", "custom"]
-            },
-            "vestedPct":      { "type": ["number", "null"] },
-            "ytdContributed": { "type": "number" },
-            "annualLimit":    { "type": ["number", "null"] },
-            "remainingRoom":  { "type": ["number", "null"] }
-          }
-        },
-
-        "taxTreatment": {
-          "type": "string",
-          "enum": ["pre_tax", "roth", "taxable", "hsa_triple_advantage", "tax_exempt"]
-        }
+        "name":              { "type": "string" },
+        "amount":            { "type": "number" },
+        "period":            { "type": "string" },
+        "usedAmount":        { "type": "number" },
+        "expiresOn":         { "type": ["string", "null"] }
       }
     },
-
-    "CreditCard": {
-      "title": "CreditCard",
-      "type": "object",
-      "required": ["id", "ownerId", "name", "issuer", "annualFee", "status", "rewardsCurrency"],
+    "FreeNightCert": {
+      "required": ["value"],
       "properties": {
-        "id":      { "type": "string", "format": "uuid" },
-        "ownerId": { "type": "string", "format": "uuid" },
-        "name":    { "type": "string" },
-
-        "issuer": {
-          "type": "string",
-          "enum": ["chase", "amex", "wells_fargo", "citi", "capital_one", "barclays", "synchrony", "bank_of_america", "us_bank", "discover", "other"]
-        },
-
-        "network": { "type": "string", "enum": ["visa", "mastercard", "amex", "discover"] },
-
-        "annualFee": { "type": "number" },
-        "status": {
-          "type": "string",
-          "enum": ["active", "cancel_soon", "keep_for_history", "product_change_pending", "closed"]
-        },
-
-        "rewardsCurrency": {
-          "type": "string",
-          "enum": [
-            "chase_ur", "amex_mr", "delta_skymiles", "marriott_bonvoy",
-            "hyatt_points", "ihg_points", "united_miles", "southwest_points",
-            "cash_back", "amazon_rewards", "store_rewards"
-          ]
-        }
+        "value":       { "type": "string" },
+        "expiration":  { "type": ["string", "null"] },
+        "used":        { "type": "boolean" }
       }
     },
-
-    "Transaction": {
-      "title": "Transaction",
-      "type": "object",
-      "required": ["id", "userId", "amount", "date", "merchant", "category"],
+    "ROITracking": {
       "properties": {
-        "id":      { "type": "string", "format": "uuid" },
-        "userId":  { "type": "string", "format": "uuid" },
-        "cardUsed":  { "type": ["string", "null"], "format": "uuid" },
-        "accountId": { "type": ["string", "null"], "format": "uuid" },
-
-        "amount": { "type": "number" },
-        "date":   { "type": "string", "format": "date" },
-
-        "merchant": {
-          "type": "object",
-          "required": ["name"],
-          "properties": {
-            "name": { "type": "string" }
-          }
-        },
-
-        "category": { "type": "string" }
+        "totalAFPaid":          { "type": "number" },
+        "creditsUsed":          { "type": "number" },
+        "valueRedeemed":        { "type": "number" },
+        "totalBenefitValueEst": { "type": "number" },
+        "netROI":               { "type": "number" },
+        "roiVerdict":           { "type": "string", "enum": ["keep", "keep_conditional", "downgrade", "product_change", "cancel", "pending_review"] },
+        "freeNightCertUsed":    { "type": ["boolean", "null"] },
+        "companionCertUsed":    { "type": ["boolean", "null"] }
       }
-    },
-
-    "Rewards": {
-      "title": "Rewards",
-      "type": "object",
-      "properties": {}
-    },
-
-    "Goal": {
-      "title": "Goal",
-      "type": "object",
-      "properties": {}
-    },
-
-    "Settings": {
-      "title": "Settings",
-      "type": "object",
-      "properties": {}
     }
+  },
+
+  "schema_versions": {
+    "V1.0": "Initial schema — credit_card, account, task entities",
+    "V1.1": "Added user, household, rewards, goal entities",
+    "V1.2": "Added transaction entity and CRUD DAL",
+    "V1.3": "Added FIRE engine, forecast engine, scenario simulator",
+    "V1.4": "Added task engine (V1 rules), backup/audit layer, governance versioning, health check"
   }
 }
